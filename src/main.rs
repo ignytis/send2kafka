@@ -1,79 +1,64 @@
 use std::env;
 use std::time::Duration;
 
-use actix_web::{post, App, HttpRequest, HttpServer, Result};
+use actix_web::{post, App, HttpRequest, HttpServer, Result, web};
 use log::info;
 
 use rdkafka::config::ClientConfig;
-use rdkafka::message::{Header, OwnedHeaders};
 use rdkafka::producer::{FutureProducer, FutureRecord};
 
 
 // An example from: https://github.com/fede1024/rust-rdkafka/blob/master/examples/simple_producer.rs
 
-async fn produce(brokers: &str, topic_name: &str) {
-    // TODO: do not initialize on after HTTP req. Move out if this function
-    let producer: &FutureProducer = &ClientConfig::new()
-        .set("bootstrap.servers", brokers)
-        .set("message.timeout.ms", "5000")
-        .create()
-        .expect("Producer creation error");
+struct AppState {
+    producer: FutureProducer,
+}
 
-    // This loop is non blocking: all messages will be sent one after the other, without waiting
-    // for the results.
-    let futures = (0..5)
-        .map(|i| async move {
-            // The send operation on the topic returns a future, which will be
-            // completed once the result or failure from Kafka is received.
-            let delivery_status = producer
-                .send(
-                    FutureRecord::to(topic_name)
-                    // TODO: replace with actual payload
-                        .payload(&format!("Message {}", i))
-                        .key(&format!("Key {}", i))
-                        .headers(OwnedHeaders::new().insert(Header {
-                            key: "header_key",
-                            value: Some("header_value"),
-                        })),
-                    Duration::from_secs(0),
-                )
-                .await;
-
-            // This will be executed when the result is received.
-            delivery_status
-        })
-        .collect::<Vec<_>>();
-
-    // This loop will wait until all delivery statuses have been received.
-    for future in futures {
-        info!("Future completed. Result: {:?}", future.await);
+impl AppState {
+    fn new(producer: FutureProducer) -> Self {
+        AppState{producer}
     }
 }
 
+async fn produce(producer: &FutureProducer, topic_name: &str, payload: Vec<u8>) {
+    let res = producer
+        .send(FutureRecord::to(topic_name)
+                .payload(&payload.to_vec())
+                .key(&String::new()),
+            Duration::from_secs(0)).await;
+    info!("Result: {:?}", res);
+}
 
 #[post("/{topic}")]
-async fn index(req: HttpRequest) -> Result<String> {
-    
+async fn index(req: HttpRequest, data: web::Data<AppState>, payload: web::Bytes) -> Result<String> {
     let topic: String = req.match_info().get("topic").unwrap().parse().unwrap();
-    // let topic = ""
-
-    produce("localhost:29092", topic.as_str()).await;
-
+    produce(&data.producer, topic.as_str(), payload.to_vec()).await;
     Ok(String::from(""))
 }
+
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
     env_logger::init();
 
-    let host =  env::var("SEND2KAFKA_HTTP_HOST").unwrap_or(String::from("127.0.0.1"));
-    let port = env::var("SEND2KAFKA_HTTP_PORT").unwrap_or(String::from("8080")).parse::<u16>().expect("Incorrect HTTP port provided");
-    info!("Listening on {}:{}", host, port);
+    let http_host =  env::var("SEND2KAFKA_HTTP_HOST").unwrap_or(String::from("127.0.0.1"));
+    let http_port = env::var("SEND2KAFKA_HTTP_PORT").unwrap_or(String::from("8080")).parse::<u16>().expect("Incorrect HTTP port provided");
 
+    info!("Listening on {}:{}", http_host, http_port);
     HttpServer::new(|| {
-        App::new().service(index)
+        let kafka_bootstrap_servers = env::var("SEND2KAFKA_KAFKA_BROKERS").unwrap_or(String::from("localhost:29092"));
+
+        let producer: FutureProducer = ClientConfig::new()
+            .set("bootstrap.servers", kafka_bootstrap_servers)
+            .set("message.timeout.ms", "5000")
+            .create()
+            .expect("Can't create a Kafka producer");
+
+        App::new()
+            .app_data(web::Data::new(AppState::new(producer)))
+            .service(index)
     })
-    .bind((host, port))?
+    .bind((http_host, http_port))?
     .run()
     .await
 }

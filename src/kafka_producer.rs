@@ -5,6 +5,7 @@ use log::info;
 use rdkafka::config::ClientConfig;
 use rdkafka::producer::{FutureProducer, FutureRecord};
 
+#[derive(Clone)]
 pub struct KafkaProducer {
     rd_producer: FutureProducer,
 }

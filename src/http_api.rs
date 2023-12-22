@@ -3,6 +3,7 @@ use log::info;
 
 use crate::app_state::AppState;
 use crate::kafka_producer::KafkaProducer;
+use crate::configuration::Config;
 
 #[post("/{topic}")]
 async fn index(req: HttpRequest, app_state: Data<AppState>, payload: Bytes) -> Result<String> {
@@ -11,16 +12,16 @@ async fn index(req: HttpRequest, app_state: Data<AppState>, payload: Bytes) -> R
     Ok(String::from(""))
 }
 
-pub async fn start(http_host: String, http_port: u16, kafka_bootstrap_servers: String) -> std::io::Result<()> {
-    info!("Listening on {}:{}", http_host, http_port);
+pub async fn start(cfg: Config) -> std::io::Result<()> {
+    info!("Listening on {}:{}", cfg.http.host, cfg.http.port);
     HttpServer::new(move || {
-        let producer = KafkaProducer::new(kafka_bootstrap_servers.clone());
+        let producer = KafkaProducer::new(&cfg.kafka);
 
         App::new()
             .app_data(Data::new(AppState::new(producer)))
             .service(index)
     })
-    .bind((http_host, http_port))?
+    .bind((cfg.http.host, cfg.http.port))?
     .run()
     .await
 }

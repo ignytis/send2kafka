@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::time::Duration;
 
 use log::info;
@@ -11,15 +12,14 @@ pub struct KafkaProducer {
 }
 
 impl KafkaProducer {
-    pub fn new(kafka_bootstrap_servers: String) -> Self {
-        let rd_producer = ClientConfig::new()
-            .set("bootstrap.servers", kafka_bootstrap_servers)
-            .set("message.timeout.ms", "5000")
-            .create()
-            .expect("Can't create a Kafka producer");
+    pub fn new(cfg: &HashMap<String, String>) -> Self {
+        let mut rd_producer = &mut ClientConfig::new();
+        for (k, v) in cfg.iter() {
+            rd_producer = rd_producer.set(k.replace("_", "."), v);   
+        }
 
         KafkaProducer {
-            rd_producer
+            rd_producer: rd_producer.create().expect("Can't create a Kafka producer"),
         }
     }
 

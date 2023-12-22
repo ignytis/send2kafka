@@ -7,6 +7,8 @@ edition = "2021"
 
 [dependencies]
 actix-web = "4.4.0"
+config =  { version = "0.13.4", features = ["yaml"] }
 env_logger = "0.10.1"
 log = "0.4.20"
 rdkafka = { version = "0.36", features = ["cmake-build"] }
+serde = "1.0.193"

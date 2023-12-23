@@ -1,8 +1,6 @@
 use std::collections::HashMap;
 use std::time::Duration;
 
-use log::info;
-
 use rdkafka::config::ClientConfig;
 use rdkafka::producer::{FutureProducer, FutureRecord};
 
@@ -23,12 +21,17 @@ impl KafkaProducer {
         }
     }
 
-    pub async fn produce(&self, topic_name: &str, payload: Vec<u8>) {
+    // On success returns a tuple (partition, offset)
+    // On failure returns an error message
+    pub async fn produce(&self, topic_name: &str, payload: Vec<u8>) -> Result<(i32, i64), String> {
         let res = self.rd_producer
             .send(FutureRecord::to(topic_name)
                     .payload(&payload.to_vec())
-                    .key(&String::new()),
+                    .key(&String::new()), // TODO: format key
                 Duration::from_secs(0)).await;
-        info!("Result: {:?}", res);
+        match res {
+            Ok(d) => Ok(d),
+            Err((kafka_error, _)) => Err(format!("{:?}", kafka_error))
+        }
     }
 }

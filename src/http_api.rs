@@ -1,6 +1,6 @@
 use actix_web::{post, App, HttpRequest, HttpResponse, HttpServer, Result,
-    http::{header::ContentType, StatusCode},
-    web::{Bytes, Data}, error};
+    http::StatusCode,
+    web::{Bytes, Data, Path}, error};
 use derive_more::Display;
 use log::{error, info};
 
@@ -8,26 +8,60 @@ use crate::app_state::AppState;
 use crate::kafka_producer::KafkaProducer;
 use crate::configuration::Config;
 
-#[derive(Debug, Display)]
-struct KafkaError {}
+const ERR_PRODUCE_KAFKA_MESSAGE: &str = "Failed to produce a Kafka message";
+const ERR_XKEY_PARAM_INVALID: &str = "The X-Key header is invlid";
+const ERR_XKEY_PARAM_MISSING: &str = "The X-Key header is missing";
 
-impl error::ResponseError for KafkaError {
+#[derive(Debug, Display)]
+enum TopicPostErrorKind {
+    /// Produicer failed to send a message to Kafka
+    ProducerError,
+    /// Cannot convert a X-Key header because it's invalid
+    XKeyParamInvalid,
+    /// User didn't specified a X-Key parameter
+    XKeyParamMissing,
+}
+
+#[derive(Debug, Display)]
+struct TopicPostError {
+    kind: TopicPostErrorKind,
+}
+
+impl TopicPostError {
+    fn new(kind: TopicPostErrorKind) -> Self {
+        TopicPostError { kind }
+    }
+}
+
+impl error::ResponseError for TopicPostError {
     fn error_response(&self) -> HttpResponse {
-        HttpResponse::build(StatusCode::INTERNAL_SERVER_ERROR)
-            .insert_header(ContentType::json())
-            .body("")
+        let (body, status_code) = match self.kind {
+            TopicPostErrorKind::ProducerError => (ERR_PRODUCE_KAFKA_MESSAGE, StatusCode::INTERNAL_SERVER_ERROR),
+            TopicPostErrorKind::XKeyParamInvalid => (ERR_XKEY_PARAM_INVALID, StatusCode::FORBIDDEN),
+            TopicPostErrorKind::XKeyParamMissing => (ERR_XKEY_PARAM_MISSING, StatusCode::FORBIDDEN),
+        };
+        HttpResponse::build(status_code).body(body)
     }
 }   
    
 
-#[post("/{topic}")]
-async fn index(req: HttpRequest, app_state: Data<AppState>, payload: Bytes) -> Result<String, KafkaError> {
-    let topic: String = req.match_info().get("topic").unwrap().parse().unwrap();
-    match app_state.producer.produce(topic.as_str(), payload.to_vec()).await {
+#[post("/topics/{topic}")]
+async fn index(req: HttpRequest, path_info: Path<String>, payload: Bytes, app_state: Data<AppState>) -> Result<String, TopicPostError> {
+    let topic: String = path_info.into_inner();
+    // Probably could replace this validation logic with Actix guard, but in this case we will not get error details
+    let key = match req.headers().get("X-Key") {
+        Some(h) => h.to_str(),
+        None => return Err(TopicPostError::new(TopicPostErrorKind::XKeyParamMissing))
+    };
+    let key = match key {
+        Ok(k) => String::from(k),
+        Err(_) => return Err(TopicPostError::new(TopicPostErrorKind::XKeyParamInvalid)),
+    };
+    match app_state.producer.produce(topic.as_str(), &key, payload.to_vec()).await {
         Ok(_) => Ok(String::from("")),
         Err(e) => {
-            error!("Failed to produce a Kafka message: {}", e);
-            Err(KafkaError{})
+            error!("{}: {}", ERR_PRODUCE_KAFKA_MESSAGE, e);
+            Err(TopicPostError::new(TopicPostErrorKind::ProducerError))
         }
     }
 }

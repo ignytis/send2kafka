@@ -23,11 +23,11 @@ impl KafkaProducer {
 
     // On success returns a tuple (partition, offset)
     // On failure returns an error message
-    pub async fn produce(&self, topic_name: &str, payload: Vec<u8>) -> Result<(i32, i64), String> {
+    pub async fn produce(&self, topic_name: &str, key: &String, payload: Vec<u8>) -> Result<(i32, i64), String> {
         let res = self.rd_producer
             .send(FutureRecord::to(topic_name)
                     .payload(&payload.to_vec())
-                    .key(&String::new()), // TODO: format key
+                    .key(key), // TODO: format key
                 Duration::from_secs(0)).await;
         match res {
             Ok(d) => Ok(d),

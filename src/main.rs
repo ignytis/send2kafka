@@ -10,11 +10,14 @@ use crate::configuration::Config;
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
+    if env::var("RUST_LOG").is_err() {
+        env::set_var("RUST_LOG", "info")
+    }
     env_logger::init();
 
     let cfg_file = env::var("SEND2KAFKA__CONFIG").unwrap_or(String::from("config.yaml"));
     let cfg = LibConfig::builder()
-        .set_default("http.host", "127.0.0.1").unwrap()
+        .set_default("http.host", "0.0.0.0").unwrap()
         .set_default("http.port", "8080").unwrap()
         .set_default("kafka.bootstrap_servers", "localhost:9092").unwrap()
         .add_source(config::Environment::with_prefix("SEND2KAFKA").separator("__"))
@@ -26,8 +29,6 @@ async fn main() -> std::io::Result<()> {
         Ok(c) => c,
         Err(e) => panic!("Failed to build the configuration: {}", e),
     };
-
-    println!("{:?}", &cfg);
 
     http_api::start(cfg).await
 }

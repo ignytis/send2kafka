@@ -12,6 +12,12 @@ Config could be provided in two ways:
   - By default: a `config.yaml` file in current working directory
   - Could be overridden using `SEND2KAFKA__CONFIG` environment variable
 
+_NB: for Kafka attributes you need to use single `_` instead of `.`: `SEND2KAFKA__KAFKA__BOOTSTRAP_SERVERS=localhost:1234`.
+Single underscores will be replaced with dots automatically.
+The configuration library uses dots as separators which conflicts with Kafka property format.
+In addition, environment variable names are not supposed to have dots._
+
+
 ### Parameters
 
 There are default values provided in the snippet below:
@@ -22,9 +28,9 @@ http:
   port: 8080
 kafka:
   bootstrap_servers: localhost:9092
-  # Here you can provide additional Kafka parameters
-  # NB: as '.' is used as config section separator both here and in Kafka,
-  # you will need to use underscore for Kafka config instead
-  # (see the example above, originally the property name is 'bootstrap.servers').
-  # The app will replace underscores with dots
+  # Here you can provide additional Kafka parameters, for example:
+  # sasl_mechanism: SCRAM-SHA-256
+  # security_protocol: SASL_PLAINTEXT
+  # sasl_username: me
+  # sasl_password: mypassword
 ```

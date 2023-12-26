@@ -69,6 +69,9 @@ async fn index(req: HttpRequest, path_info: Path<String>, payload: Bytes, app_st
 pub async fn start(cfg: Config) -> std::io::Result<()> {
     info!("Listening on {}:{}", cfg.http.host, cfg.http.port);
     HttpServer::new(move || {
+        // TODO: this creates a producer per Actix worker.
+        // Should we have 1 producer instead? Should we pass Arc<Mutex<Producer>>?
+        // Will it block HTTP handlers? Perhaps current approach is still better
         let producer = KafkaProducer::new(&cfg.kafka);
 
         App::new()

@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 use std::time::Duration;
 
+use log::info;
 use rdkafka::config::ClientConfig;
 use rdkafka::producer::{FutureProducer, FutureRecord};
 
@@ -15,10 +16,13 @@ impl KafkaProducer {
         for (k, v) in cfg.iter() {
             rd_producer = rd_producer.set(k.replace("_", "."), v);   
         }
+        let rd_producer = rd_producer.create().expect("Can't create a Kafka producer");
+        let bootstrap_servers = cfg.get("bootstrap_servers")
+            .unwrap_or(&String::from("(not provided)"))
+            .clone();  // to resolve a '&String vs String' issue
+        info!("Connected to Kafka. Bootstrap servers: {}", bootstrap_servers);
 
-        KafkaProducer {
-            rd_producer: rd_producer.create().expect("Can't create a Kafka producer"),
-        }
+        KafkaProducer { rd_producer }
     }
 
     // On success returns a tuple (partition, offset)
@@ -27,7 +31,7 @@ impl KafkaProducer {
         let res = self.rd_producer
             .send(FutureRecord::to(topic_name)
                     .payload(&payload.to_vec())
-                    .key(key), // TODO: format key
+                    .key(key),
                 Duration::from_secs(0)).await;
         match res {
             Ok(d) => Ok(d),

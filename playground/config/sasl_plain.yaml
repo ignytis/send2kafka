@@ -1,0 +1,9 @@
+# You can use this playground to set up a Kafka cluster
+# https://github.com/vdesabou/kafka-docker-playground
+# Note: it runs some additional components
+kafka:
+  bootstrap_servers: 127.0.0.1:29092
+  sasl_mechanism: PLAIN
+  security_protocol: SASL_PLAINTEXT
+  sasl_username: client
+  sasl_password: client-secret

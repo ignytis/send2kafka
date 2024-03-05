@@ -50,12 +50,11 @@ async fn index(req: HttpRequest, path_info: Path<String>, payload: Bytes, app_st
     let topic: String = path_info.into_inner();
     // Probably could replace this validation logic with Actix guard, but in this case we will not get error details
     let key = match req.headers().get("X-Key") {
-        Some(h) => h.to_str(),
-        None => return Err(TopicPostError::new(TopicPostErrorKind::XKeyParamMissing))
-    };
-    let key = match key {
-        Ok(k) => String::from(k),
-        Err(_) => return Err(TopicPostError::new(TopicPostErrorKind::XKeyParamInvalid)),
+        Some(h) => match h.to_str() {
+            Ok(v) => Some(String::from(v)),
+            Err(_) => None,
+        },
+        None => None,
     };
     match app_state.producer.produce(topic.as_str(), &key, payload.to_vec()).await {
         Ok(_) => Ok(String::from("")),

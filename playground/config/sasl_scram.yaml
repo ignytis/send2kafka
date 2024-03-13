@@ -1,0 +1,29 @@
+# You can use this playground to set up a Kafka cluster
+# https://github.com/vdesabou/kafka-docker-playground
+# Environments -> /environment/sasl-scram/start.sh
+# Note: it runs some additional components
+
+# Testing:
+#
+# Server:
+# docker run \
+# -e SEND2KAFKA__KAFKA__BOOTSTRAP_SERVERS=172.17.0.1:9092
+# -e SEND2KAFKA__HTTP__HOST=0.0.0.0
+# -e SEND2KAFKA__KAFKA__SASL_USERNAME=client
+# -e SEND2KAFKA__KAFKA__SASL_PASSWORD=client-secret
+# -e SEND2KAFKA__KAFKA__SASL_MECHANISM=SCRAM-SHA-256
+# -e SEND2KAFKA__KAFKA__SECURITY_PROTOCOL=SASL_PLAINTEXT
+# -e SEND2KAFKA__CONFIG=/app/config.yaml
+# --publish 8080:8080
+# --network plaintext_default
+# --rm -it local/send2kafka
+#
+# Client:
+# seq 1 2 | xargs -I % -n 1 -P 3 curl -i -X POST "http://localhost:8080/topics/test" -H X-Key:msg_% -d '{"test": 123, "th": %}'
+
+kafka:
+  bootstrap_servers: 127.0.0.1:9092
+  sasl_mechanism: SCRAM-SHA-256
+  security_protocol: SASL_PLAINTEXT
+  sasl_username: client
+  sasl_password: client-secret

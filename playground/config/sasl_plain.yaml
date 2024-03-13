@@ -1,5 +1,6 @@
 # You can use this playground to set up a Kafka cluster
 # https://github.com/vdesabou/kafka-docker-playground
+# Environments -> /environment/plaintext/start.sh
 # Note: it runs some additional components
 kafka:
   bootstrap_servers: 127.0.0.1:29092

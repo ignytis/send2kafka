@@ -16,10 +16,6 @@ const ERR_XKEY_PARAM_MISSING: &str = "The X-Key header is missing";
 enum TopicPostErrorKind {
     /// Produicer failed to send a message to Kafka
     ProducerError,
-    /// Cannot convert a X-Key header because it's invalid
-    XKeyParamInvalid,
-    /// User didn't specified a X-Key parameter
-    XKeyParamMissing,
 }
 
 #[derive(Debug, Display)]

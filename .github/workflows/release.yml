@@ -56,20 +56,6 @@ jobs:
         with:
           targets: ${{ matrix.target }}
 
-      - name: Look up deps
-        shell: powershell
-        run: |
-          Get-Childitem -Path D:/a/send2kafka/send2kafka/vcpkg -Include *.LIB,*.A,*.DLL -File -Recurse -ErrorAction SilentlyContinue
-        if: contains(matrix.target, 'windows')
-
-      - name: Install build deps on Windows
-        shell: powershell
-        run: |
-          echo "VCPKG_ROOT=$env:VCPKG_INSTALLATION_ROOT" | Out-File -FilePath $env:GITHUB_ENV -Append
-          vcpkg install librdkafka[ssl]
-          Get-Childitem -Path C:\vcpkg\packages -Include *.LIB,*.A,*.DLL -File -Recurse -ErrorAction SilentlyContinue
-        if: contains(matrix.target, 'windows')
-
       - name: Build
         uses: actions-rs/cargo@v1
         with:
@@ -77,6 +63,8 @@ jobs:
           command: build
           args: --verbose --release
         env:
+          # TODO: make it for Windows only. A possible solution:
+          # echo VAR=VAL >> $GITHUB_ENV  <- in some of previous steps
           VCPKG_ROOT: D:\a\send2kafka\send2kafka\vcpkg
           OPENSSL_LIB_DIR: D:\a\send2kafka\send2kafka\vcpkg\installed\x64-windows-release\lib
 

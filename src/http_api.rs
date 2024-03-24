@@ -9,8 +9,6 @@ use crate::kafka_producer::KafkaProducer;
 use crate::configuration::Config;
 
 const ERR_PRODUCE_KAFKA_MESSAGE: &str = "Failed to produce a Kafka message";
-const ERR_XKEY_PARAM_INVALID: &str = "The X-Key header is invlid";
-const ERR_XKEY_PARAM_MISSING: &str = "The X-Key header is missing";
 
 #[derive(Debug, Display)]
 enum TopicPostErrorKind {
@@ -33,8 +31,6 @@ impl error::ResponseError for TopicPostError {
     fn error_response(&self) -> HttpResponse {
         let (body, status_code) = match self.kind {
             TopicPostErrorKind::ProducerError => (ERR_PRODUCE_KAFKA_MESSAGE, StatusCode::INTERNAL_SERVER_ERROR),
-            TopicPostErrorKind::XKeyParamInvalid => (ERR_XKEY_PARAM_INVALID, StatusCode::FORBIDDEN),
-            TopicPostErrorKind::XKeyParamMissing => (ERR_XKEY_PARAM_MISSING, StatusCode::FORBIDDEN),
         };
         HttpResponse::build(status_code).body(body)
     }

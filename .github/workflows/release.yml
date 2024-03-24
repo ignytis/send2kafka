@@ -1,0 +1,109 @@
+name: Release
+
+on:
+  push:
+    tags: [ 'v*.*.*' ]
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-upload:
+    name: Build and upload
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - build: windows
+            os: windows-latest
+            target: x86_64-pc-windows-msvc
+
+          - build: linux
+            os: ubuntu-latest
+            target: x86_64-unknown-linux-musl
+
+          - build: macos
+            os: macos-latest
+            target: x86_64-apple-darwin
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Get the release version from the tag
+        shell: bash
+        run: echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV
+
+      - name: Install build deps on Linux
+        run: sudo apt-get update --yes && sudo apt-get install --yes pkg-config libsasl2-dev libsasl2-dev libssl-dev
+        if: contains(matrix.target, 'linux')
+
+      - name: Install build deps on Windows
+        uses: johnwason/vcpkg-action@v6
+        id: vcpkg
+        with:
+          manifest-dir: ${{ github.workspace }}\build\windows
+          triplet: x64-windows-static-md
+          token: ${{ github.token }}
+          github-binarycache: true
+          fetch-depth: 0
+        if: contains(matrix.target, 'windows')
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - name: Look up deps
+        shell: powershell
+        run: |
+          Get-Childitem -Path D:/a/send2kafka/send2kafka/vcpkg -Include *.LIB,*.A,*.DLL -File -Recurse -ErrorAction SilentlyContinue
+        if: contains(matrix.target, 'windows')
+
+      - name: Install build deps on Windows
+        shell: powershell
+        run: |
+          echo "VCPKG_ROOT=$env:VCPKG_INSTALLATION_ROOT" | Out-File -FilePath $env:GITHUB_ENV -Append
+          vcpkg install librdkafka[ssl]
+          Get-Childitem -Path C:\vcpkg\packages -Include *.LIB,*.A,*.DLL -File -Recurse -ErrorAction SilentlyContinue
+        if: contains(matrix.target, 'windows')
+
+      - name: Build
+        uses: actions-rs/cargo@v1
+        with:
+          use-cross: false
+          command: build
+          args: --verbose --release
+        env:
+          VCPKG_ROOT: D:\a\send2kafka\send2kafka\vcpkg
+          OPENSSL_LIB_DIR: D:\a\send2kafka\send2kafka\vcpkg\installed\x64-windows-release\lib
+
+      - name: Build archive
+        shell: bash
+        run: |
+          # Replace with the name of your binary
+          binary_name="send2kafka"
+
+          dirname="$binary_name-${{ env.VERSION }}-${{ matrix.target }}"
+          mkdir "$dirname"
+          if [ "${{ matrix.os }}" = "windows-latest" ]; then
+            mv "target/release/$binary_name.exe" "$dirname"
+          else
+            mv "target/release/$binary_name" "$dirname"
+          fi
+
+          if [ "${{ matrix.os }}" = "windows-latest" ]; then
+            7z a "$dirname.zip" "$dirname"
+            echo "ASSET=$dirname.zip" >> $GITHUB_ENV
+          else
+            tar -czf "$dirname.tar.gz" "$dirname"
+            echo "ASSET=$dirname.tar.gz" >> $GITHUB_ENV
+          fi
+
+      - name: Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            ${{ env.ASSET }}

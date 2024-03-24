@@ -1,0 +1,15 @@
+{
+    "name": "send2kafka",
+    "version": "0.1.0",
+    "dependencies": [
+        {
+            "name": "librdkafka",
+            "features": ["ssl"]
+        },
+        "openssl"
+    ],
+    "overrides": [
+        { "name": "openssl", "version-string": "1.1.1n" }
+    ],
+    "builtin-baseline": "2ac61f87f69f0484b8044f95ab274038fbaf7bdd"
+}

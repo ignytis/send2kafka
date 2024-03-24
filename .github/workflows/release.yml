@@ -56,17 +56,24 @@ jobs:
         with:
           targets: ${{ matrix.target }}
 
-      - name: Build
+      - name: Build (Windows)
         uses: actions-rs/cargo@v1
         with:
           use-cross: false
           command: build
-          args: --verbose --release
+          args: --release
         env:
-          # TODO: make it for Windows only. A possible solution:
-          # echo VAR=VAL >> $GITHUB_ENV  <- in some of previous steps
           VCPKG_ROOT: D:\a\send2kafka\send2kafka\vcpkg
           OPENSSL_LIB_DIR: D:\a\send2kafka\send2kafka\vcpkg\installed\x64-windows-release\lib
+        if: contains(matrix.target, 'windows')
+
+      - name: Build (Unix)
+        uses: actions-rs/cargo@v1
+        with:
+          use-cross: false
+          command: build
+          args: --release
+        if: "!contains(matrix.target, 'windows')"
 
       - name: Build archive
         shell: bash

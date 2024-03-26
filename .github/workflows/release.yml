@@ -1,3 +1,8 @@
+# The job is DISABLED, because:
+# - macOS: cannot run the app due to unknown publisher. Probably need to use registries like Homebrew
+# - Linux: Links to library versions which might not work on other machines (e.g. libsasl.so.2 vs libsasl.so.3)
+# - General: compiles under AMD only. It would be good to have it compiled under ARM as well
+
 name: Release
 
 on:
@@ -11,6 +16,7 @@ jobs:
   build-and-upload:
     name: Build and upload
     runs-on: ${{ matrix.os }}
+    if: ${{ false }} # Remove this to enable the job
 
     strategy:
       fail-fast: false

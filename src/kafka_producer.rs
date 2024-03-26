@@ -20,9 +20,9 @@ impl KafkaProducer {
         let bootstrap_servers = cfg.get("bootstrap_servers")
             .unwrap_or(&String::from("(not provided)"))
             .clone();  // to resolve a '&String vs String' issue
+        let producer = KafkaProducer { rd_producer };
         info!("Connected to Kafka. Bootstrap servers: {}", bootstrap_servers);
-
-        KafkaProducer { rd_producer }
+        producer
     }
 
     // On success returns a tuple (partition, offset)

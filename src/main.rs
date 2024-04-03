@@ -4,9 +4,9 @@ mod http_api;
 mod kafka_producer;
 
 use std::env;
+
 use config::Config as LibConfig;
 use crate::configuration::Config;
-
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {

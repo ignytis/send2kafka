@@ -41,7 +41,3 @@ kafka:
 
 Sends a message to Kafka topic. Message payload should be provided as a message body.
 The message key could be specified using the optional _X-Key_ HTTP header
-
-### GET /health_check
-
-Returns HTTP 200 if the service is healthy, otherwise returns HTTP 500 + error message in body as plain text

@@ -7,7 +7,6 @@ use crate::app_state::{AppState, Status};
 use crate::kafka_producer::KafkaProducer;
 use crate::configuration::Config;
 
-use crate::http_api::endpoints::health_check::health_check;
 use crate::http_api::endpoints::topics_post::topics_post;
 
 pub async fn start(cfg: Config) -> std::io::Result<()> {
@@ -22,7 +21,6 @@ pub async fn start(cfg: Config) -> std::io::Result<()> {
 
         App::new()
             .app_data(Data::new(state))
-            .service(health_check)
             .service(topics_post)
     })
     .bind((cfg.http.host, cfg.http.port))?

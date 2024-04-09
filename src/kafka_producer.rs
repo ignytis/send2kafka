@@ -1,27 +1,15 @@
 use std::collections::HashMap;
-use std::sync::{Arc, Mutex};
-use std::time::Duration;
 
 use log::{error, info};
 use rdkafka::config::ClientConfig;
 use rdkafka::producer::{FutureProducer, FutureRecord};
 
-use lazy_static::lazy_static;
-
-
-pub struct Stats {
-    pub num_errors: usize,
-}
-
-lazy_static! {
-    pub static ref STATS: Arc<Mutex<Stats>> = Arc::new(Mutex::new(Stats {
-        num_errors: 0,
-    }));
-}
 
 fn queue_poll_error_cb(message: String) {
-    STATS.lock().unwrap().num_errors += 1;
-    error!("Error callback CLOSURE: {}; ERRORS REPORTED: {}", message, STATS.lock().unwrap().num_errors);
+    if message.contains("Connection refused") || message.contains("Authentication failed") {
+        error!("FATAL ERROR: {}", message);
+        std::process::exit(-1);
+    }
 }
 
 #[derive(Clone)]
@@ -57,12 +45,17 @@ impl KafkaProducer {
             Some(k) => future_record.key(k),
             None => future_record,
         };
-        let res = self.rd_producer
-            .send(future_record, Duration::from_secs(0)).await;
 
-        match res {
-            Ok(d) => Ok(d),
-            Err((kafka_error, _)) => Err(format!("{:?}", kafka_error))
+        let res = match self.rd_producer.send_result(future_record) {
+            Ok(o) => o,
+            Err((kafka_error, _)) => return Err(format!("{:?}", kafka_error)),
+        };
+        match res.await {
+            Ok(res2) => match res2 {
+                Ok(d) => Ok(d),
+                Err((kafka_error, _)) => Err(format!("{:?}", kafka_error))
+            },
+            Err(_) => Err(format!("An error occurred")),
         }
     }
 }

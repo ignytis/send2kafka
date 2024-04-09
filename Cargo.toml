@@ -12,7 +12,6 @@ env_logger = "0.10.1"
 derive_more = "0.99.17"
 log = "0.4.20"
 serde = "1.0.193"
-lazy_static = "1.4.0"
 
 [target.'cfg(unix)'.dependencies]
 rdkafka = { version = "0.36", features = ["cmake-build", "ssl", "gssapi"] }

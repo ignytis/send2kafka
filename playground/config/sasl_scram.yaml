@@ -27,3 +27,6 @@ kafka:
   security_protocol: SASL_PLAINTEXT
   sasl_username: client
   sasl_password: client-secret
+
+  # message_send_max_retries: 1
+  # delivery_timeout_ms: 1000

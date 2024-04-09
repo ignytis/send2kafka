@@ -40,7 +40,7 @@ kafka:
 ### POST /topics/<topic_name>
 
 Sends a message to Kafka topic. Message payload should be provided as a message body.
-The message key __MUST__ be specified using _X-Key_ HTTP header
+The message key could be specified using the optional _X-Key_ HTTP header
 
 ### GET /health_check
 

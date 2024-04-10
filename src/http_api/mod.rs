@@ -3,7 +3,7 @@ pub mod endpoints;
 use actix_web::{App, HttpServer, web::Data};
 use log::info;
 
-use crate::app_state::{AppState, Status};
+use crate::app_state::AppState;
 use crate::kafka_producer::KafkaProducer;
 use crate::configuration::Config;
 
@@ -16,8 +16,7 @@ pub async fn start(cfg: Config) -> std::io::Result<()> {
         // Should we have 1 producer instead? Should we pass Arc<Mutex<Producer>>?
         // Will it block HTTP handlers? Perhaps current approach is still better
         let producer = KafkaProducer::new(&cfg.kafka);
-        let mut state = AppState::new(producer);
-        state.status = Status::Ok; // FIXME: this has no effect. Need to catch conneciton issues other way
+        let state = AppState::new(producer);
 
         App::new()
             .app_data(Data::new(state))

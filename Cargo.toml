@@ -18,3 +18,6 @@ rdkafka = { version = "0.36", features = ["cmake-build", "ssl", "gssapi"] }
 
 [target.'cfg(windows)'.dependencies]
 rdkafka = { version = "0.36", features = ["cmake-build", "ssl"] }
+
+[patch.crates-io]
+rdkafka = { git = "https://github.com/ignytis/rust-rdkafka.git", branch = "poll_error_callbacks" }

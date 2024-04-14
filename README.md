@@ -26,6 +26,7 @@ There are default values provided in the snippet below:
 http:
   host: 0.0.0.0
   port: 8080
+  # num_workers: 0  # Optional. If not specified, it will be calculated automatically: https://actix.rs/docs/server/#multi-threading
 kafka:
   bootstrap_servers: localhost:9092
   # Here you can provide additional Kafka parameters, for example:

@@ -6,6 +6,7 @@ use serde::Deserialize;
 pub struct Http {
     pub host: String,
     pub port: u16,
+    pub num_workers: usize
 }
 
 #[derive(Clone, Debug, Deserialize)]

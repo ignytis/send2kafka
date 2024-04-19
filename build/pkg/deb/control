@@ -1,0 +1,6 @@
+Package: send2kafka
+Version: {{ VERSION }}
+Architecture: amd64
+Maintainer: Ignytis <155588001+ignytis@users.noreply.github.com>>
+Description: A HTTP interface for Kafka
+Depends: libsasl2-2 (>= 2.1.28), libsasl2-2 (<< 3.0.0)

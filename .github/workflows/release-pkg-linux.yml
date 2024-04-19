@@ -1,0 +1,84 @@
+name: Release Linux Packages
+
+on:
+  push:
+    tags: [ 'v*.*.*' ]
+
+permissions:
+  contents: write
+
+jobs:
+    build-pkg-rpm:
+        name: Build RPM 
+        runs-on: ubuntu-latest
+        steps:
+        - name: Checkout
+          uses: actions/checkout@v3
+        - name: Get the release version from the tag
+          shell: bash
+          run: echo "VERSION=${GITHUB_REF#refs/tags/}" | sed "s/v//g" >> $GITHUB_ENV
+        - name: Run the build process in Docker
+          uses: addnab/docker-run-action@v3
+          with:
+              image: fedora:39
+              shell: bash
+              options: -v ${{ github.workspace }}:/build -e VERSION=${{ env.VERSION }}
+              run: |
+                set -e
+
+                dnf update -y
+                dnf install -y cmake cyrus-sasl-devel fedora-packager fedora-review rust rust-cargo+default-devel
+
+                cd /build
+                cargo build --release
+
+                mkdir -p /root/rpmbuild/BUILD/
+                cp /build/target/release/send2kafka /root/rpmbuild/BUILD/
+                cat /build/build/pkg/rpm/send2kafka.spec | sed 's/{{ VERSION }}/${{ env.VERSION }}/g' >> /build/build/pkg/rpm/send2kafka.final.spec
+                rpmbuild -ba /build/build/pkg/rpm/send2kafka.final.spec
+
+                cp /root/rpmbuild/RPMS/x86_64/send2kafka-${{ env.VERSION }}-1.x86_64.rpm /build/
+        - name: Release
+          uses: softprops/action-gh-release@v1
+          with:
+            files: |
+              ${{ github.workspace }}/send2kafka-${{ env.VERSION }}-1.x86_64.rpm
+
+    build-pkg-deb:
+        name: Build DEB
+        runs-on: ubuntu-latest
+        steps:
+        - name: Checkout
+          uses: actions/checkout@v3
+        - name: Get the release version from the tag
+          shell: bash
+          run: echo "VERSION=${GITHUB_REF#refs/tags/}" | sed "s/v//g" >> $GITHUB_ENV
+        - name: Run the build process in Docker
+          uses: addnab/docker-run-action@v3
+          with:
+              image: debian:bookworm
+              shell: bash
+              options: -v ${{ github.workspace }}:/build -e VERSION=${{ env.VERSION }}
+              run: |
+                set -e
+
+                apt update
+                apt install -yy cmake curl gcc g++ libsasl2-dev libssl-dev pkg-config
+                curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+                source ~/.bashrc 
+
+                mkdir -p /build/send2kafka_${{ env.VERSION }}-1_amd64/usr/local/bin
+                mkdir -p /build/send2kafka_${{ env.VERSION }}-1_amd64/DEBIAN
+                cat /build/build/pkg/deb/control | sed 's/{{ VERSION }}/${{ env.VERSION }}/g' >> /build/send2kafka_${{ env.VERSION }}-1_amd64/DEBIAN/control
+
+                cd /build
+                cargo build --release
+
+                cp ./target/release/send2kafka /build/send2kafka_${{ env.VERSION }}-1_amd64/usr/local/bin/
+
+                dpkg-deb --build --root-owner-group /build/send2kafka_${{ env.VERSION }}-1_amd64
+        - name: Release
+          uses: softprops/action-gh-release@v1
+          with:
+            files: |
+              ${{ github.workspace }}/send2kafka_${{ env.VERSION }}-1_amd64.deb

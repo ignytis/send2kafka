@@ -3,7 +3,7 @@
 # - Linux: Links to library versions which might not work on other machines (e.g. libsasl.so.2 vs libsasl.so.3)
 # - General: compiles under AMD only. It would be good to have it compiled under ARM as well
 
-name: Release
+name: Release Binary
 
 on:
   push:
